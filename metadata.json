@@ -1,0 +1,6 @@
+{
+  "name": "TON Travel",
+  "description": "Telegram travel mini app with TON cashback for booking stays worldwide.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
