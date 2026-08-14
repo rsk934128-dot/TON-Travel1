@@ -26,6 +26,8 @@ export interface Hotel {
   rooms: RoomOption[];
   popular?: boolean;
   tag?: string;
+  category?: 'Luxury' | 'Budget' | 'Boutique' | 'Resort' | 'Eco-Villa' | string;
+  categoryTags?: string[];
 }
 
 export type PaymentMethod = 'TON' | 'USDT_TON' | 'CARD';

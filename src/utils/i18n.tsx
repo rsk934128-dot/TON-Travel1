@@ -78,6 +78,7 @@ export const translations = {
     'tab.map': 'Explore Map',
     'tab.wallet': 'Wallet',
     'tab.stays': 'My Stays',
+    'tab.gmail': 'Gmail',
 
     // Hero Banner
     'hero.badge': 'Telegram Travel Mini App',
@@ -95,11 +96,21 @@ export const translations = {
     'daily.congrats': 'Bonus Claimed! +{amount} TON added to your balance.',
 
     // Search & Filters
-    'search.placeholder': 'Search destination, hotel name, or city (e.g., Bali, Paris, Dubai)...',
+    'search.placeholder': 'Search destination, hotel, city, or category (e.g., Luxury, Budget, Bali)...',
     'search.all_cities': 'All',
     'search.featured_stays': 'Featured Stays',
     'search.currency_btn': 'Currency: {code}',
     'search.ton_price': '1 TON = ${price}',
+    'categories.filter_title': 'Category Tags:',
+    'categories.all': 'All Categories',
+    'categories.luxury': 'Luxury',
+    'categories.boutique': 'Boutique',
+    'categories.budget': 'Budget',
+    'categories.resort': 'Resort',
+    'categories.eco_villa': 'Eco-Villa',
+    'categories.clear': 'Clear Filters',
+    'categories.no_results': 'No hotels match your current filters',
+    'categories.no_results_desc': 'Try clearing some filters or selecting another category tag.',
 
     // Smart Travel Suggestions
     'smart.title': 'Smart Travel Suggestions',
@@ -219,6 +230,7 @@ export const translations = {
     'tab.map': 'Карта',
     'tab.wallet': 'Кошелёк',
     'tab.stays': 'Мои брони',
+    'tab.gmail': 'Gmail',
 
     // Hero Banner
     'hero.badge': 'Мини-Приложение Telegram для Путешествий',
@@ -236,11 +248,21 @@ export const translations = {
     'daily.congrats': 'Бонус получен! +{amount} TON зачислено на ваш баланс.',
 
     // Search & Filters
-    'search.placeholder': 'Поиск направления, отеля или города (например: Бали, Париж, Дубай)...',
+    'search.placeholder': 'Поиск направления, отеля, города или категории (например: Люкс, Бюджет, Бали)...',
     'search.all_cities': 'Все',
     'search.featured_stays': 'Рекомендуемые отели',
     'search.currency_btn': 'Валюта: {code}',
     'search.ton_price': '1 TON = ${price}',
+    'categories.filter_title': 'Категории:',
+    'categories.all': 'Все категории',
+    'categories.luxury': 'Люкс',
+    'categories.boutique': 'Бутик',
+    'categories.budget': 'Бюджетные',
+    'categories.resort': 'Курортные',
+    'categories.eco_villa': 'Эко-виллы',
+    'categories.clear': 'Сбросить фильтры',
+    'categories.no_results': 'Отели не найдены по выбранным фильтрам',
+    'categories.no_results_desc': 'Попробуйте сбросить фильтры или выбрать другую категорию.',
 
     // Smart Travel Suggestions
     'smart.title': 'Умные рекомендации отелей',
@@ -360,6 +382,7 @@ export const translations = {
     'tab.map': 'Explorar Mapa',
     'tab.wallet': 'Billetera',
     'tab.stays': 'Mis Estancias',
+    'tab.gmail': 'Gmail',
 
     // Hero Banner
     'hero.badge': 'Mini App de Viajes de Telegram',
@@ -377,11 +400,21 @@ export const translations = {
     'daily.congrats': '¡Bono Reclamado! Se han añadido +{amount} TON a tu saldo.',
 
     // Search & Filters
-    'search.placeholder': 'Buscar destino, hotel o ciudad (ej. Bali, París, Dubái)...',
+    'search.placeholder': 'Buscar destino, hotel, ciudad o categoría (ej. Lujo, Económico, Bali)...',
     'search.all_cities': 'Todos',
     'search.featured_stays': 'Estancias Destacadas',
     'search.currency_btn': 'Moneda: {code}',
     'search.ton_price': '1 TON = ${price}',
+    'categories.filter_title': 'Categorías:',
+    'categories.all': 'Todas las Categorías',
+    'categories.luxury': 'Lujo',
+    'categories.boutique': 'Boutique',
+    'categories.budget': 'Económicos',
+    'categories.resort': 'Resorts',
+    'categories.eco_villa': 'Eco-Villas',
+    'categories.clear': 'Limpiar filtros',
+    'categories.no_results': 'No se encontraron hoteles con estos filtros',
+    'categories.no_results_desc': 'Prueba limpiando algunos filtros o seleccionando otra categoría.',
 
     // Smart Travel Suggestions
     'smart.title': 'Sugerencias de Viaje Inteligentes',

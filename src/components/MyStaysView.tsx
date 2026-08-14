@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Booking, UserState } from '../types';
-import { Luggage, Calendar, Cloud, ExternalLink, CheckCircle, Sparkles, Loader2, ArrowUpRight, ShieldCheck, Award } from 'lucide-react';
+import { Luggage, Calendar, Cloud, ExternalLink, CheckCircle, Sparkles, Loader2, ArrowUpRight, ShieldCheck, Award, Mail } from 'lucide-react';
 import { saveBookingReceiptToDrive, requestDriveAuthToken } from '../services/driveService';
+import { AddToCalendarDropdown } from './AddToCalendarDropdown';
 import { calculateLoyaltyTier } from '../utils/loyalty';
 import { formatFiatEstimate } from '../utils/currency';
 import { useLanguage } from '../utils/i18n';
@@ -14,6 +15,7 @@ interface MyStaysViewProps {
   rates?: Record<string, number>;
   onDriveAuth: () => void;
   onUpdateBookingDriveStatus: (bookingId: string, driveFileId: string, driveUrl: string) => void;
+  onNavigateToGmail?: () => void;
 }
 
 export const MyStaysView: React.FC<MyStaysViewProps> = ({
@@ -22,7 +24,8 @@ export const MyStaysView: React.FC<MyStaysViewProps> = ({
   selectedCurrency = 'USD',
   rates = {},
   onDriveAuth,
-  onUpdateBookingDriveStatus
+  onUpdateBookingDriveStatus,
+  onNavigateToGmail
 }) => {
   const { t } = useLanguage();
   const [exportingId, setExportingId] = useState<string | null>(null);
@@ -202,36 +205,52 @@ export const MyStaysView: React.FC<MyStaysViewProps> = ({
                   <span>Paid via <strong className="text-white">{b.paymentMethod}</strong></span>
                 </div>
 
-                {b.driveFileUrl ? (
-                  <a
-                    href={b.driveFileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 bg-emerald-950/80 hover:bg-emerald-900/80 text-emerald-300 font-bold px-3 py-1.5 rounded-xl border border-emerald-800/80 transition-all"
-                  >
-                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Saved in Google Drive</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                ) : (
-                  <button
-                    onClick={() => handleExportToDrive(b)}
-                    disabled={exportingId === b.id}
-                    className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-1.5 rounded-xl shadow-md transition-all disabled:opacity-50"
-                  >
-                    {exportingId === b.id ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Syncing to Drive...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Cloud className="w-3.5 h-3.5" />
-                        <span>{t('stays.export_drive')}</span>
-                      </>
-                    )}
-                  </button>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Calendar Integration Dropdown */}
+                  <AddToCalendarDropdown booking={b} variant="compact" />
+
+                  {onNavigateToGmail && (
+                    <button
+                      onClick={onNavigateToGmail}
+                      className="inline-flex items-center gap-1.5 bg-red-950/60 hover:bg-red-900/60 text-red-300 font-bold px-3 py-1.5 rounded-xl border border-red-800/60 transition-all shadow-sm"
+                      title="Open Gmail Travel Hub to send or check vouchers"
+                    >
+                      <Mail className="w-3.5 h-3.5 text-red-400" />
+                      <span>Send to Gmail</span>
+                    </button>
+                  )}
+
+                  {b.driveFileUrl ? (
+                    <a
+                      href={b.driveFileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 bg-emerald-950/80 hover:bg-emerald-900/80 text-emerald-300 font-bold px-3 py-1.5 rounded-xl border border-emerald-800/80 transition-all"
+                    >
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Saved in Drive</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => handleExportToDrive(b)}
+                      disabled={exportingId === b.id}
+                      className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-1.5 rounded-xl shadow-md transition-all disabled:opacity-50"
+                    >
+                      {exportingId === b.id ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Syncing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Cloud className="w-3.5 h-3.5" />
+                          <span>{t('stays.export_drive')}</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}

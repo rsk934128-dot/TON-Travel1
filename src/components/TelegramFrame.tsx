@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserState } from '../types';
-import { Sparkles, Shield, Wallet, Smartphone, Monitor, CheckCircle, ExternalLink, Zap, Award, ArrowRightLeft } from 'lucide-react';
+import { Sparkles, Shield, Wallet, Smartphone, Monitor, CheckCircle, ExternalLink, Zap, Award, ArrowRightLeft, Crown, TrendingUp } from 'lucide-react';
 import { LoyaltyTierStatus } from '../utils/loyalty';
 import { AccentTheme, THEMES } from '../utils/theme';
 import { ThemeSelector } from './ThemeSelector';
@@ -17,6 +17,8 @@ interface TelegramFrameProps {
   selectedCurrency?: string;
   rates?: Record<string, number>;
   onOpenConverter?: () => void;
+  onOpenAdmin?: () => void;
+  onOpenCryptoRank?: () => void;
   onSelectTheme?: (theme: AccentTheme) => void;
   onTogglePremium: () => void;
   onConnectWallet: () => void;
@@ -31,6 +33,8 @@ export const TelegramFrame: React.FC<TelegramFrameProps> = ({
   selectedCurrency = 'USD',
   rates = {},
   onOpenConverter,
+  onOpenAdmin,
+  onOpenCryptoRank,
   onSelectTheme,
   onTogglePremium,
   onConnectWallet,
@@ -92,6 +96,30 @@ export const TelegramFrame: React.FC<TelegramFrameProps> = ({
               themeDef={activeThemeDef}
               variant="header"
             />
+          )}
+
+          {/* Quick CryptoRank v3 Connector & Live Market Explorer Trigger */}
+          {onOpenCryptoRank && (
+            <button
+              onClick={onOpenCryptoRank}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full font-bold text-xs bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 transition-all active:scale-95 shadow-sm"
+              title="Open CryptoRank v3 Live Prices, OpenAPI & MCP Server"
+            >
+              <TrendingUp className="w-3.5 h-3.5 text-blue-400" />
+              <span>CryptoRank v3</span>
+            </button>
+          )}
+
+          {/* Super Admin Control Center Trigger */}
+          {onOpenAdmin && (
+            <button
+              onClick={onOpenAdmin}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-xs bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/20 transition-all active:scale-95"
+              title="Open Admin Control Portal (SuperAdmins: rubelbank92@gmail.com & rubels1k994@gmail.com)"
+            >
+              <Crown className="w-3.5 h-3.5 fill-slate-950 text-slate-950" />
+              <span>Admin Portal</span>
+            </button>
           )}
 
           {/* Quick Accent Theme Selector */}

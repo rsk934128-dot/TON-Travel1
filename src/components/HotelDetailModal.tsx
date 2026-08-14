@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Hotel, RoomOption } from '../types';
-import { X, Star, MapPin, Sparkles, Check, Wifi, Shield, ArrowRight, Info, Coffee, Navigation, Award } from 'lucide-react';
+import { X, Star, MapPin, Sparkles, Check, Wifi, Shield, ArrowRight, Info, Coffee, Navigation, Award, Share2 } from 'lucide-react';
 import { PriceHistoryChart } from './PriceHistoryChart';
+import { HotelWeatherForecast } from './HotelWeatherForecast';
 import { formatFiatEstimate } from '../utils/currency';
+import { getCategoryVisual } from './HotelCard';
 
 interface HotelDetailModalProps {
   hotel: Hotel | null;
@@ -35,6 +37,7 @@ export const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
 
   const showFiat = selectedCurrency !== 'USD';
 
+  const [copied, setCopied] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedRoom, setSelectedRoom] = useState<RoomOption>(hotel.rooms[0] || {
     id: 'default',
@@ -63,17 +66,83 @@ export const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
   const roomFiatPrice = formatFiatEstimate(roomPriceUsd, selectedCurrency, rates);
   const cashbackFiat = formatFiatEstimate(cashbackUsd, selectedCurrency, rates);
 
+  const handleShare = async () => {
+    const referralCode = 'TONTRAVEL_VIP';
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://t.me/tontravel_bot/app';
+    const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+    const shareUrl = `${origin}${pathname}?hotel=${hotel.id}&ref=${referralCode}`;
+
+    const shareData = {
+      title: `${hotel.name} - TON Travel`,
+      text: `🏨 Check out ${hotel.name} in ${hotel.location} on TON Travel!\nBook with TON or Card & earn up to +${cashbackTon.toFixed(2)} TON (${totalCashbackPercentage.toFixed(1)}%) crypto cashback!\nReferral: ${referralCode}`,
+      url: shareUrl
+    };
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2200);
+      } else if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share(shareData);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2200);
+      } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(`${shareData.text}\n${shareUrl}`);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2200);
+      }
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        try {
+          if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            await navigator.clipboard.writeText(`${shareData.text}\n${shareUrl}`);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2200);
+          }
+        } catch (clipErr) {
+          console.error('Share fallback error:', clipErr);
+        }
+      }
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl relative flex flex-col text-slate-100 my-auto">
         
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-20 bg-slate-950/70 hover:bg-slate-800 text-slate-300 hover:text-white p-2 rounded-full backdrop-blur-md border border-slate-700/60 transition-all"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        {/* Top Header Actions (Share & Close) */}
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleShare}
+            className={`p-2 rounded-full backdrop-blur-md border transition-all duration-200 shadow-lg flex items-center justify-center ${
+              copied
+                ? 'bg-emerald-600 border-emerald-400 text-white scale-105 shadow-emerald-500/40 ring-2 ring-emerald-400/50'
+                : 'bg-slate-950/70 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-700/60 hover:scale-105'
+            }`}
+            title={copied ? 'Referral Link Copied!' : 'Share hotel & referral link'}
+            aria-label="Share hotel"
+          >
+            {copied ? <Check className="w-4 h-4 text-white stroke-[2.5px]" /> : <Share2 className="w-4 h-4" />}
+          </button>
+
+          <button
+            onClick={onClose}
+            className="bg-slate-950/70 hover:bg-slate-800 text-slate-300 hover:text-white p-2 rounded-full backdrop-blur-md border border-slate-700/60 transition-all hover:scale-105"
+            aria-label="Close modal"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Copied Notification Pill */}
+        {copied && (
+          <div className="absolute top-16 right-4 bg-emerald-950/95 border border-emerald-500 text-emerald-200 text-xs font-extrabold px-3 py-1.5 rounded-xl shadow-2xl backdrop-blur-md flex items-center gap-1.5 animate-fade-in z-30">
+            <Check className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Referral link copied to clipboard!</span>
+          </div>
+        )}
 
         {/* Gallery Slider */}
         <div className="relative h-64 sm:h-80 w-full bg-slate-950 overflow-hidden">
@@ -112,9 +181,27 @@ export const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
           
           {/* Header Info */}
           <div>
-            <div className="flex items-center gap-2 text-xs text-[#0088cc] font-semibold mb-1">
-              <MapPin className="w-3.5 h-3.5" />
-              <span>{hotel.location}, {hotel.country}</span>
+            <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+              <div className="flex items-center gap-2 text-xs text-[#0088cc] font-semibold">
+                <MapPin className="w-3.5 h-3.5" />
+                <span>{hotel.location}, {hotel.country}</span>
+              </div>
+
+              {/* Category Tags Chips */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {(hotel.categoryTags || (hotel.category ? [hotel.category] : ['Luxury'])).map((tag, idx) => {
+                  const visual = getCategoryVisual(tag);
+                  return (
+                    <span
+                      key={idx}
+                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border flex items-center gap-1 ${visual.badgeClass}`}
+                    >
+                      <span>{visual.emoji}</span>
+                      <span>{tag}</span>
+                    </span>
+                  );
+                })}
+              </div>
             </div>
             <h2 className="text-2xl font-black text-white">{hotel.name}</h2>
             <p className="text-xs text-slate-400 mt-2 leading-relaxed">{hotel.description}</p>
@@ -257,6 +344,14 @@ export const HotelDetailModal: React.FC<HotelDetailModalProps> = ({
               })}
             </div>
           </div>
+
+          {/* 3-Day Live Open Weather Forecast */}
+          <HotelWeatherForecast
+            latitude={hotel.latitude}
+            longitude={hotel.longitude}
+            cityName={hotel.city}
+            countryName={hotel.country}
+          />
 
           {/* Location Map Preview */}
           <div>

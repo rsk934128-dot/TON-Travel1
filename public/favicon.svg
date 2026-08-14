@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0098ea"/>
+      <stop offset="50%" stop-color="#0088cc"/>
+      <stop offset="100%" stop-color="#006699"/>
+    </linearGradient>
+    <linearGradient id="diamondGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="60%" stop-color="#f0f9ff"/>
+      <stop offset="100%" stop-color="#bae6fd"/>
+    </linearGradient>
+    <linearGradient id="planeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Background Squircle -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+
+  <!-- Subtle Inner Glow Ring -->
+  <rect x="12" y="12" width="488" height="488" rx="100" fill="none" stroke="#ffffff" stroke-width="4" stroke-opacity="0.25"/>
+
+  <!-- TON Gem Diamond Center -->
+  <g filter="url(#shadow)">
+    <!-- Main Diamond Body -->
+    <path d="M256 96 L396 220 L256 424 L116 220 Z" fill="url(#diamondGrad)"/>
+    
+    <!-- Facet Lines & Shading for 3D Diamond Look -->
+    <!-- Top Left Facet -->
+    <path d="M256 96 L116 220 L204 220 Z" fill="#e0f2fe" fill-opacity="0.9"/>
+    <!-- Top Right Facet -->
+    <path d="M256 96 L396 220 L308 220 Z" fill="#ffffff" fill-opacity="0.95"/>
+    <!-- Center Top Triangle -->
+    <path d="M256 96 L204 220 L308 220 Z" fill="#f8fafc"/>
+    <!-- Center Bottom Spine -->
+    <path d="M204 220 L256 424 L308 220 Z" fill="#0284c7" fill-opacity="0.15"/>
+    <path d="M116 220 L256 424 L204 220 Z" fill="#0369a1" fill-opacity="0.25"/>
+    <path d="M396 220 L256 424 L308 220 Z" fill="#0ea5e9" fill-opacity="0.1"/>
+  </g>
+
+  <!-- Stylized Jet / Travel Flight Arc -->
+  <g transform="translate(18, -12)">
+    <!-- Flight Vapor Trail -->
+    <path d="M140 330 C200 310, 290 260, 365 175" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-dasharray="10 8" stroke-opacity="0.7"/>
+    <!-- Mini Airplane Emblem -->
+    <path d="M375 165 L360 178 L370 180 L366 188 L374 186 L376 193 L381 184 L396 182 L388 173 L391 163 L375 165 Z" fill="#ffffff" filter="url(#shadow)"/>
+  </g>
+</svg>

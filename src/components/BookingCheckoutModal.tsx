@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Hotel, RoomOption, PaymentMethod, Booking, UserState } from '../types';
-import { X, Calendar, Users, Wallet, CreditCard, Sparkles, CheckCircle2, Cloud, ExternalLink, Loader2, ShieldCheck, Globe } from 'lucide-react';
+import { X, Calendar, Users, Wallet, CreditCard, Sparkles, CheckCircle2, Cloud, ExternalLink, Loader2, ShieldCheck, Globe, CalendarPlus } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { saveBookingReceiptToDrive, requestDriveAuthToken } from '../services/driveService';
+import { AddToCalendarDropdown } from './AddToCalendarDropdown';
 import { formatFiatEstimate, getCurrencyInfo, formatFiat } from '../utils/currency';
 
 interface BookingCheckoutModalProps {
@@ -253,6 +254,21 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
                   <span>Wallet Payout:</span>
                   <span className="font-mono text-cyan-300">{confirmedBooking.userWallet}</span>
                 </div>
+              </div>
+
+              {/* Calendar Sync Action Box */}
+              <div className="bg-slate-800/80 border border-blue-900/60 rounded-2xl p-4 text-left space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-blue-500/20 text-blue-400 rounded-xl">
+                    <CalendarPlus className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white">Add Stay to Your Calendar</h4>
+                    <p className="text-[11px] text-slate-400">Sync check-in & check-out dates to Apple, Google or Outlook</p>
+                  </div>
+                </div>
+
+                <AddToCalendarDropdown booking={confirmedBooking} variant="primary" />
               </div>
 
               {/* Google Drive Export Action Box */}

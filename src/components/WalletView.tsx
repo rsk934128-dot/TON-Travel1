@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserState, Booking } from '../types';
-import { Wallet, Sparkles, CheckCircle, ArrowUpRight, Cloud, RefreshCw, ShieldCheck, Zap, Copy, ExternalLink, Award, Gift, Palette, ArrowRightLeft, Globe } from 'lucide-react';
+import { Wallet, Sparkles, CheckCircle, ArrowUpRight, Cloud, RefreshCw, ShieldCheck, Zap, Copy, ExternalLink, Award, Gift, Palette, ArrowRightLeft, Globe, HelpCircle, AlertTriangle, Terminal, Code, TrendingUp, Cpu } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { FrequentTravelerLoyaltySection } from './FrequentTravelerLoyaltySection';
 import { DailyRewardsCard } from './DailyRewardsCard';
@@ -21,6 +21,9 @@ interface WalletViewProps {
   selectedCurrency?: string;
   rates?: Record<string, number>;
   onOpenConverter?: () => void;
+  onOpenTonTroubleshooter?: () => void;
+  onOpenTonApiInspector?: () => void;
+  onOpenCryptoRankConnector?: () => void;
   onSelectTheme?: (theme: AccentTheme) => void;
   onConnectWallet: () => void;
   onTogglePremium: () => void;
@@ -37,6 +40,9 @@ export const WalletView: React.FC<WalletViewProps> = ({
   selectedCurrency = 'USD',
   rates = {},
   onOpenConverter,
+  onOpenTonTroubleshooter,
+  onOpenTonApiInspector,
+  onOpenCryptoRankConnector,
   onSelectTheme,
   onConnectWallet,
   onTogglePremium,
@@ -156,7 +162,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
             </div>
           )}
 
-          {/* Claim Action Bar */}
+          {/* Claim Action Bar & Troubleshooter trigger */}
           <div className="pt-2 flex flex-wrap items-center gap-3">
             <button
               onClick={handleClaimTON}
@@ -180,6 +186,39 @@ export const WalletView: React.FC<WalletViewProps> = ({
                 </>
               )}
             </button>
+
+            {onOpenTonTroubleshooter && (
+              <button
+                onClick={onOpenTonTroubleshooter}
+                className="px-3.5 py-3 rounded-2xl bg-slate-800/90 hover:bg-slate-700 text-amber-300 border border-amber-500/30 flex items-center gap-2 text-xs font-bold transition-all shadow-sm active:scale-95"
+                title="TON Space Transaction Troubleshooting & Gas Guide"
+              >
+                <AlertTriangle className="w-4 h-4 text-amber-400" />
+                <span>TON Space Help</span>
+              </button>
+            )}
+
+            {onOpenTonApiInspector && (
+              <button
+                onClick={onOpenTonApiInspector}
+                className="px-3.5 py-3 rounded-2xl bg-slate-800/90 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 flex items-center gap-2 text-xs font-bold transition-all shadow-sm active:scale-95"
+                title="TON API v2 Explorer (Accounts, Raw Blockchain State, NFTs)"
+              >
+                <Terminal className="w-4 h-4 text-cyan-400" />
+                <span>TON API v2</span>
+              </button>
+            )}
+
+            {onOpenCryptoRankConnector && (
+              <button
+                onClick={onOpenCryptoRankConnector}
+                className="px-3.5 py-3 rounded-2xl bg-slate-800/90 hover:bg-slate-700 text-blue-300 border border-blue-500/30 flex items-center gap-2 text-xs font-bold transition-all shadow-sm active:scale-95"
+                title="CryptoRank v3 Connector & MCP (Live Prices, OpenAPI v3, Model Context Protocol)"
+              >
+                <TrendingUp className="w-4 h-4 text-blue-400" />
+                <span>CryptoRank v3</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

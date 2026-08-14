@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { UserState, Hotel, RoomOption, Booking } from './types';
 import { HOTELS } from './data/hotels';
 import { TelegramFrame } from './components/TelegramFrame';
@@ -9,15 +10,21 @@ import { BookingCheckoutModal } from './components/BookingCheckoutModal';
 import { WalletView } from './components/WalletView';
 import { MapView } from './components/MapView';
 import { MyStaysView } from './components/MyStaysView';
+import { GmailView } from './components/GmailView';
 import { CurrencyConverterModal } from './components/CurrencyConverterModal';
 import { SmartTravelSuggestions } from './components/SmartTravelSuggestions';
+import { AdminPanelModal } from './components/AdminPanelModal';
+import { TonSpaceTroubleshooterModal } from './components/TonSpaceTroubleshooterModal';
+import { TonApiInspectorModal } from './components/TonApiInspectorModal';
+import { CryptoRankConnectorModal } from './components/CryptoRankConnectorModal';
+import { ADMIN_EMAILS } from './utils/admin';
 import { requestDriveAuthToken } from './services/driveService';
 import { calculateLoyaltyTier } from './utils/loyalty';
 import { loadDailyRewardsState, getCooldownStatus } from './utils/dailyRewards';
 import { AccentTheme, THEMES, loadSavedTheme, saveTheme } from './utils/theme';
 import { loadSavedCurrency, saveCurrency, fetchFxRates, DEFAULT_FX_RATES } from './utils/currency';
 import { useLanguage } from './utils/i18n';
-import { Search, Sparkles, SlidersHorizontal, MapPin, Building2, Shield, RefreshCw, Gift, Flame, Clock, ChevronRight, ArrowRightLeft } from 'lucide-react';
+import { Search, Sparkles, SlidersHorizontal, MapPin, Building2, Shield, RefreshCw, Gift, Flame, Clock, ChevronRight, ArrowRightLeft, RotateCcw, Tag } from 'lucide-react';
 import appLogo from './assets/images/ton_travel_logo_1786647813598.jpg';
 
 export default function App() {
@@ -76,6 +83,22 @@ export default function App() {
     }
   });
 
+  // Hotel Catalog State (Allows Super Admin dynamic rate adjustments & discounts)
+  const [hotels, setHotels] = useState<Hotel[]>(HOTELS);
+
+  // Admin Modal & Active SuperAdmin Identity State
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [activeAdminEmail, setActiveAdminEmail] = useState<string>(ADMIN_EMAILS[0]);
+
+  // TON Space Transaction Troubleshooting Modal
+  const [isTonTroubleshooterOpen, setIsTonTroubleshooterOpen] = useState(false);
+
+  // TON API v2 Live Inspector Modal (Accounts, Raw State, NFTs)
+  const [isTonApiModalOpen, setIsTonApiModalOpen] = useState(false);
+
+  // CryptoRank API v3 & MCP Connector Modal
+  const [isCryptoRankModalOpen, setIsCryptoRankModalOpen] = useState(false);
+
   const [activeTab, setActiveTab] = useState<TabType>('hotels');
   const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null);
   const [bookingTarget, setBookingTarget] = useState<{ hotel: Hotel; room: RoomOption } | null>(null);
@@ -83,6 +106,7 @@ export default function App() {
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCityFilter, setSelectedCityFilter] = useState('All');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('All');
 
   // Daily Rewards quick status
   const [dailyRewardsState, setDailyRewardsState] = useState(() => loadDailyRewardsState());
@@ -209,20 +233,137 @@ export default function App() {
     );
   };
 
+  // Import Travel Reservation from Gmail
+  const handleImportBooking = (imported: Partial<Booking>) => {
+    const matchingHotel = hotels.find(
+      (h) => h.name.toLowerCase().includes((imported.hotelName || '').toLowerCase()) ||
+             (imported.hotelName || '').toLowerCase().includes(h.name.toLowerCase())
+    ) || hotels[0];
+
+    const nights = 2;
+    const pricePerNightUsd = matchingHotel.rooms[0]?.pricePerNightUsd || 160;
+    const totalPriceUsd = pricePerNightUsd * nights;
+    const totalPriceTon = totalPriceUsd / userState.tonPriceUsd;
+    const cashbackPct = userState.isTelegramPremium ? 8 : 5;
+    const cashbackTon = (totalPriceTon * cashbackPct) / 100;
+    const cashbackUsd = (totalPriceUsd * cashbackPct) / 100;
+
+    const newBooking: Booking = {
+      id: `TT-GMAIL-${Math.floor(100000 + Math.random() * 900000)}`,
+      hotelId: matchingHotel.id,
+      hotelName: imported.hotelName || matchingHotel.name,
+      hotelLocation: imported.hotelLocation || matchingHotel.location,
+      hotelImage: matchingHotel.images[0],
+      roomName: matchingHotel.rooms[0]?.name || 'Standard Deluxe Room',
+      checkIn: imported.checkIn || new Date().toISOString().split('T')[0],
+      checkOut: imported.checkOut || new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+      nights,
+      guests: 2,
+      totalPriceUsd,
+      totalPriceTon,
+      paymentMethod: 'TON',
+      cashbackPercentage: cashbackPct,
+      cashbackTon,
+      cashbackUsd,
+      status: 'Confirmed',
+      bookingDate: new Date().toISOString().split('T')[0],
+      userWallet: userState.connectedWallet || 'EQBvW839_TonSpace_cX92',
+      guestName: userState.userProfile.name,
+      guestEmail: 'alex.morgan@telegram.org'
+    };
+
+    setBookings((prev) => [newBooking, ...prev]);
+  };
+
   // Filter Hotels
-  const filteredHotels = HOTELS.filter((hotel) => {
+  const filteredHotels = hotels.filter((hotel) => {
+    const query = searchQuery.toLowerCase().trim();
+    const hotelTags = hotel.categoryTags || (hotel.category ? [hotel.category] : []);
+
     const matchesSearch =
-      hotel.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      hotel.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      hotel.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      hotel.country.toLowerCase().includes(searchQuery.toLowerCase());
+      !query ||
+      hotel.name.toLowerCase().includes(query) ||
+      hotel.location.toLowerCase().includes(query) ||
+      hotel.city.toLowerCase().includes(query) ||
+      hotel.country.toLowerCase().includes(query) ||
+      (hotel.category && hotel.category.toLowerCase().includes(query)) ||
+      hotelTags.some((tag) => tag.toLowerCase().includes(query)) ||
+      hotel.perks.some((perk) => perk.toLowerCase().includes(query));
 
     const matchesCity = selectedCityFilter === 'All' || hotel.city === selectedCityFilter;
 
-    return matchesSearch && matchesCity;
+    const matchesCategory =
+      selectedCategoryFilter === 'All' ||
+      hotel.category === selectedCategoryFilter ||
+      hotelTags.includes(selectedCategoryFilter);
+
+    return matchesSearch && matchesCity && matchesCategory;
   });
 
+  const CATEGORY_FILTERS = [
+    { id: 'All', labelKey: 'categories.all', fallback: 'All Categories', emoji: '🏨' },
+    { id: 'Luxury', labelKey: 'categories.luxury', fallback: 'Luxury', emoji: '👑', color: '#f59e0b' },
+    { id: 'Boutique', labelKey: 'categories.boutique', fallback: 'Boutique', emoji: '✨', color: '#a855f7' },
+    { id: 'Budget', labelKey: 'categories.budget', fallback: 'Budget', emoji: '🏷️', color: '#10b981' },
+    { id: 'Resort', labelKey: 'categories.resort', fallback: 'Resorts', emoji: '🏖️', color: '#06b6d4' },
+    { id: 'Eco-Villa', labelKey: 'categories.eco_villa', fallback: 'Eco-Villas', emoji: '🌿', color: '#14b8a6' }
+  ];
+
+  const getCategoryCount = (catId: string) => {
+    if (catId === 'All') return hotels.length;
+    return hotels.filter((h) => {
+      const tags = h.categoryTags || (h.category ? [h.category] : []);
+      return h.category === catId || tags.includes(catId);
+    }).length;
+  };
+
   const cities = ['All', 'Bali', 'Paris', 'Dubai', 'Tokyo', 'Maldives', 'New York', 'Bangkok', 'Rome', 'London'];
+
+  const hasActiveFilters = searchQuery !== '' || selectedCityFilter !== 'All' || selectedCategoryFilter !== 'All';
+
+  // Super Admin Action Handlers
+  const handleUpdateBookingStatus = (bookingId: string, newStatus: 'Confirmed' | 'Pending' | 'Completed' | 'Cancelled') => {
+    setBookings((prev) =>
+      prev.map((b) => (b.id === bookingId ? { ...b, status: newStatus } : b))
+    );
+  };
+
+  const handleUpdateHotel = (updatedHotel: Hotel) => {
+    setHotels((prev) =>
+      prev.map((h) => (h.id === updatedHotel.id ? updatedHotel : h))
+    );
+    if (selectedHotel?.id === updatedHotel.id) {
+      setSelectedHotel(updatedHotel);
+    }
+  };
+
+  const handleAddCashbackToUser = (amountTon: number) => {
+    setUserState((prev) => ({
+      ...prev,
+      tonBalance: Number((prev.tonBalance + amountTon).toFixed(3))
+    }));
+  };
+
+  const handleBulkDiscount = (discountPercent: number) => {
+    setHotels((prev) =>
+      prev.map((hotel) => {
+        const factor = (100 - discountPercent) / 100;
+        return {
+          ...hotel,
+          rooms: hotel.rooms.map((room) => ({
+            ...room,
+            pricePerNightUsd: Math.max(20, Math.round(room.pricePerNightUsd * factor))
+          }))
+        };
+      })
+    );
+  };
+
+  const resetAllFilters = () => {
+    setSearchQuery('');
+    setSelectedCityFilter('All');
+    setSelectedCategoryFilter('All');
+  };
 
   const loyaltyStatus = calculateLoyaltyTier(bookings, userState.isTelegramPremium);
 
@@ -234,6 +375,8 @@ export default function App() {
       selectedCurrency={selectedCurrency}
       rates={fxRates}
       onOpenConverter={() => setIsCurrencyModalOpen(true)}
+      onOpenAdmin={() => setIsAdminModalOpen(true)}
+      onOpenCryptoRank={() => setIsCryptoRankModalOpen(true)}
       onSelectTheme={handleSelectTheme}
       onTogglePremium={handleTogglePremium}
       onConnectWallet={handleConnectWallet}
@@ -363,8 +506,8 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Search & City Filter Bar */}
-              <div className="px-4 space-y-3 max-w-6xl mx-auto">
+              {/* Search & Multi-Filter Bar */}
+              <div className="px-4 space-y-3.5 max-w-6xl mx-auto">
                 <div className="relative">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
@@ -372,26 +515,94 @@ export default function App() {
                     placeholder={t('search.placeholder')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-white focus:outline-none transition-all placeholder:text-slate-500 shadow-md"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-10 pr-10 py-3 text-xs sm:text-sm text-white focus:outline-none transition-all placeholder:text-slate-500 shadow-md"
                     style={{
                       borderColor: searchQuery ? activeThemeDef.primaryHex : undefined
                     }}
                   />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Hotel Category Tags Filter Bar */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs px-0.5">
+                    <span className="font-extrabold text-slate-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5 text-amber-400" />
+                      <span>{t('categories.filter_title')}</span>
+                    </span>
+
+                    {hasActiveFilters && (
+                      <button
+                        onClick={resetAllFilters}
+                        className="text-[11px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        <span>{t('categories.clear')}</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Category Filter Chips */}
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                    {CATEGORY_FILTERS.map((cat) => {
+                      const isSelected = selectedCategoryFilter === cat.id;
+                      const count = getCategoryCount(cat.id);
+                      const displayLabel = cat.labelKey ? t(cat.labelKey) : cat.fallback;
+                      
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => setSelectedCategoryFilter(cat.id)}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 border ${
+                            isSelected
+                              ? 'text-white border-white/30 shadow-lg scale-[1.02]'
+                              : 'bg-slate-900 text-slate-400 hover:text-slate-200 border-slate-800/90 hover:border-slate-700'
+                          }`}
+                          style={{
+                            backgroundColor: isSelected
+                              ? (cat.color ? `${cat.color}35` : activeThemeDef.primaryHex)
+                              : undefined,
+                            borderColor: isSelected
+                              ? (cat.color ? cat.color : activeThemeDef.primaryHex)
+                              : undefined,
+                            boxShadow: isSelected
+                              ? `0 4px 14px ${(cat.color || activeThemeDef.primaryHex)}40`
+                              : undefined
+                          }}
+                        >
+                          <span className="text-sm">{cat.emoji}</span>
+                          <span className={isSelected ? 'text-white font-extrabold' : ''}>{displayLabel}</span>
+                          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                            isSelected ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-500'
+                          }`}>
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* City Filter Pills */}
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
                   {cities.map((city) => {
                     const isSelected = selectedCityFilter === city;
-                    const displayCity = city === 'All' ? t('search.all') : city;
+                    const displayCity = city === 'All' ? t('search.all_cities') : city;
                     return (
                       <button
                         key={city}
                         onClick={() => setSelectedCityFilter(city)}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                        className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all shrink-0 border ${
                           isSelected
-                            ? 'text-white shadow-md'
-                            : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                            ? 'text-white border-transparent shadow-md font-bold'
+                            : 'bg-slate-950/70 text-slate-400 hover:text-slate-200 border-slate-800'
                         }`}
                         style={{
                           backgroundColor: isSelected ? activeThemeDef.primaryHex : undefined,
@@ -409,7 +620,7 @@ export default function App() {
               <div className="px-4 max-w-6xl mx-auto">
                 <SmartTravelSuggestions
                   bookings={bookings}
-                  hotels={HOTELS}
+                  hotels={hotels}
                   tonPriceUsd={userState.tonPriceUsd}
                   isPremium={userState.isTelegramPremium}
                   loyaltyBonusPercentage={loyaltyStatus.bonusPercentage}
@@ -444,21 +655,52 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {filteredHotels.map((hotel) => (
-                    <HotelCard
-                      key={hotel.id}
-                      hotel={hotel}
-                      tonPriceUsd={userState.tonPriceUsd}
-                      isPremium={userState.isTelegramPremium}
-                      loyaltyBonusPercentage={loyaltyStatus.bonusPercentage}
-                      loyaltyTierName={loyaltyStatus.tier.name}
-                      selectedCurrency={selectedCurrency}
-                      rates={fxRates}
-                      onSelect={(h) => setSelectedHotel(h)}
-                    />
-                  ))}
-                </div>
+                {filteredHotels.length === 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-slate-900/80 border border-slate-800 rounded-3xl p-8 text-center max-w-md mx-auto space-y-4 shadow-xl my-6"
+                  >
+                    <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-2xl">
+                      🔍
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-white">{t('categories.no_results')}</h3>
+                      <p className="text-xs text-slate-400 mt-1 leading-relaxed">{t('categories.no_results_desc')}</p>
+                    </div>
+                    <button
+                      onClick={resetAllFilters}
+                      className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl shadow-lg transition-all"
+                    >
+                      {t('categories.clear')}
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key={`hotel-grid-${selectedCategoryFilter}-${selectedCityFilter}-${searchQuery}`}
+                    layout
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+                  >
+                    <AnimatePresence mode="popLayout">
+                      {filteredHotels.map((hotel, index) => (
+                        <HotelCard
+                          key={hotel.id}
+                          index={index}
+                          hotel={hotel}
+                          tonPriceUsd={userState.tonPriceUsd}
+                          isPremium={userState.isTelegramPremium}
+                          loyaltyBonusPercentage={loyaltyStatus.bonusPercentage}
+                          loyaltyTierName={loyaltyStatus.tier.name}
+                          selectedCurrency={selectedCurrency}
+                          rates={fxRates}
+                          activeCategory={selectedCategoryFilter}
+                          onSelectCategory={(cat) => setSelectedCategoryFilter(cat)}
+                          onSelect={(h) => setSelectedHotel(h)}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </motion.div>
+                )}
               </div>
 
             </div>
@@ -467,7 +709,7 @@ export default function App() {
           {/* TAB 2: MAP VIEW */}
           {activeTab === 'map' && (
             <MapView
-              hotels={HOTELS}
+              hotels={hotels}
               tonPriceUsd={userState.tonPriceUsd}
               isPremium={userState.isTelegramPremium}
               loyaltyBonusPercentage={loyaltyStatus.bonusPercentage}
@@ -486,6 +728,8 @@ export default function App() {
               selectedCurrency={selectedCurrency}
               rates={fxRates}
               onOpenConverter={() => setIsCurrencyModalOpen(true)}
+              onOpenTonTroubleshooter={() => setIsTonTroubleshooterOpen(true)}
+              onOpenTonApiInspector={() => setIsTonApiModalOpen(true)}
               onSelectTheme={handleSelectTheme}
               onConnectWallet={handleConnectWallet}
               onTogglePremium={handleTogglePremium}
@@ -504,6 +748,15 @@ export default function App() {
               rates={fxRates}
               onDriveAuth={handleDriveAuth}
               onUpdateBookingDriveStatus={handleUpdateBookingDriveStatus}
+              onNavigateToGmail={() => setActiveTab('gmail')}
+            />
+          )}
+
+          {/* TAB 5: GMAIL TRAVEL HUB */}
+          {activeTab === 'gmail' && (
+            <GmailView
+              bookings={bookings}
+              onImportBooking={handleImportBooking}
             />
           )}
 
@@ -551,6 +804,36 @@ export default function App() {
           rates={fxRates}
           tonPriceUsd={userState.tonPriceUsd}
           themeDef={activeThemeDef}
+        />
+
+        {/* Modal: Super Admin Control Portal (Admins: rubelbank92@gmail.com & rubels1k994@gmail.com) */}
+        <AdminPanelModal
+          isOpen={isAdminModalOpen}
+          onClose={() => setIsAdminModalOpen(false)}
+          activeAdminEmail={activeAdminEmail}
+          onSwitchAdminEmail={(email) => setActiveAdminEmail(email)}
+          bookings={bookings}
+          hotels={hotels}
+          userState={userState}
+          onUpdateBookingStatus={handleUpdateBookingStatus}
+          onUpdateHotel={handleUpdateHotel}
+          onAddCashbackToUser={handleAddCashbackToUser}
+          onBulkDiscountHotels={handleBulkDiscount}
+        />
+
+        {/* Modal: TON Space Transaction Troubleshooting & Diagnostics */}
+        <TonSpaceTroubleshooterModal
+          isOpen={isTonTroubleshooterOpen}
+          onClose={() => setIsTonTroubleshooterOpen(false)}
+          userState={userState}
+          onOpenTonApiInspector={() => setIsTonApiModalOpen(true)}
+        />
+
+        {/* Modal: TON API v2 Live Inspector (GET /v2/accounts, /v2/blockchain/accounts, /v2/accounts/nfts) */}
+        <TonApiInspectorModal
+          isOpen={isTonApiModalOpen}
+          onClose={() => setIsTonApiModalOpen(false)}
+          defaultAddress={userState.connectedWallet || 'EQBvW839_TonSpace_cX92vK4499_TravelReward_Vault'}
         />
 
         {/* Telegram Mini App Bottom Navigation Tabs */}
