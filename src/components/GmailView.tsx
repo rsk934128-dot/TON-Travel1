@@ -144,7 +144,10 @@ export const GmailView: React.FC<GmailViewProps> = ({
         await loadData(result.accessToken);
       }
     } catch (err: any) {
-      console.error('Sign-in error:', err);
+      if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') {
+        // User voluntarily dismissed popup
+        return;
+      }
       setSendErrorMessage(err?.message || 'Failed to sign in with Google');
     } finally {
       setIsLoggingIn(false);

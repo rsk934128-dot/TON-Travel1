@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserState, Booking } from '../types';
-import { Wallet, Sparkles, CheckCircle, ArrowUpRight, Cloud, RefreshCw, ShieldCheck, Zap, Copy, ExternalLink, Award, Gift, Palette, ArrowRightLeft, Globe, HelpCircle, AlertTriangle, Terminal, Code, TrendingUp, Cpu } from 'lucide-react';
+import { Wallet, Sparkles, CheckCircle, ArrowUpRight, Cloud, RefreshCw, ShieldCheck, Zap, Copy, ExternalLink, Award, Gift, Palette, ArrowRightLeft, Globe, HelpCircle, AlertTriangle, Terminal, Code, TrendingUp, Cpu, Database, UserCheck } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { FrequentTravelerLoyaltySection } from './FrequentTravelerLoyaltySection';
 import { DailyRewardsCard } from './DailyRewardsCard';
@@ -24,6 +24,7 @@ interface WalletViewProps {
   onOpenTonTroubleshooter?: () => void;
   onOpenTonApiInspector?: () => void;
   onOpenCryptoRankConnector?: () => void;
+  onOpenAuth?: () => void;
   onSelectTheme?: (theme: AccentTheme) => void;
   onConnectWallet: () => void;
   onTogglePremium: () => void;
@@ -43,6 +44,7 @@ export const WalletView: React.FC<WalletViewProps> = ({
   onOpenTonTroubleshooter,
   onOpenTonApiInspector,
   onOpenCryptoRankConnector,
+  onOpenAuth,
   onSelectTheme,
   onConnectWallet,
   onTogglePremium,
@@ -186,6 +188,21 @@ export const WalletView: React.FC<WalletViewProps> = ({
                 </>
               )}
             </button>
+
+            {onOpenAuth && (
+              <button
+                onClick={onOpenAuth}
+                className={`px-3.5 py-3 rounded-2xl flex items-center gap-2 text-xs font-bold transition-all shadow-sm active:scale-95 ${
+                  userState.firebaseUid
+                    ? 'bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40'
+                    : 'bg-gradient-to-r from-blue-600/30 to-cyan-600/30 hover:from-blue-600/40 hover:to-cyan-600/40 text-cyan-300 border border-cyan-500/30'
+                }`}
+                title="Firebase Auth & Firestore Cloud Storage Sync"
+              >
+                {userState.firebaseUid ? <UserCheck className="w-4 h-4 text-emerald-400" /> : <Database className="w-4 h-4 text-cyan-400" />}
+                <span>{userState.firebaseUid ? 'Cloud Synced' : 'Firebase লগইন'}</span>
+              </button>
+            )}
 
             {onOpenTonTroubleshooter && (
               <button

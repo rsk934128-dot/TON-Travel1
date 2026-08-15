@@ -17,6 +17,15 @@ import { AdminPanelModal } from './components/AdminPanelModal';
 import { TonSpaceTroubleshooterModal } from './components/TonSpaceTroubleshooterModal';
 import { TonApiInspectorModal } from './components/TonApiInspectorModal';
 import { CryptoRankConnectorModal } from './components/CryptoRankConnectorModal';
+import { AuthModal } from './components/AuthModal';
+import {
+  auth,
+  db,
+  saveUserStateToFirestore,
+  saveBookingToFirestore
+} from './services/firebaseService';
+import { onAuthStateChanged } from 'firebase/auth';
+import { collection, onSnapshot, query, doc, getDoc } from 'firebase/firestore';
 import { ADMIN_EMAILS } from './utils/admin';
 import { requestDriveAuthToken } from './services/driveService';
 import { calculateLoyaltyTier } from './utils/loyalty';
@@ -99,6 +108,95 @@ export default function App() {
   // CryptoRank API v3 & MCP Connector Modal
   const [isCryptoRankModalOpen, setIsCryptoRankModalOpen] = useState(false);
 
+  // Firebase Auth & Firestore Cloud Sync Modal
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // Firebase Auth State Listener & Firestore Real-Time Sync
+  useEffect(() => {
+    let unsubscribeBookings: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      // Clean up previous bookings listener if active
+      if (unsubscribeBookings) {
+        unsubscribeBookings();
+        unsubscribeBookings = null;
+      }
+
+      if (firebaseUser) {
+        setUserState((prev) => ({
+          ...prev,
+          firebaseUid: firebaseUser.uid,
+          firebaseEmail: firebaseUser.email,
+          userProfile: {
+            ...prev.userProfile,
+            name: firebaseUser.displayName || prev.userProfile.name,
+            avatar: firebaseUser.photoURL || prev.userProfile.avatar
+          }
+        }));
+
+        // Fetch User profile doc from Firestore
+        try {
+          const userDocRef = doc(db, 'users', firebaseUser.uid);
+          const snap = await getDoc(userDocRef);
+          if (snap.exists()) {
+            const data = snap.data();
+            setUserState((prev) => ({
+              ...prev,
+              isTelegramPremium: data.isTelegramPremium ?? prev.isTelegramPremium,
+              connectedWallet: data.connectedWallet ?? prev.connectedWallet,
+              walletType: data.walletType ?? prev.walletType,
+              tonBalance: data.tonBalance ?? prev.tonBalance,
+              priceAlertConfig: data.priceAlertConfig ?? prev.priceAlertConfig,
+              userProfile: {
+                ...prev.userProfile,
+                name: data.displayName || prev.userProfile.name
+              }
+            }));
+          }
+        } catch (e) {
+          console.warn('Could not read user profile from Firestore:', e);
+        }
+
+        // Listen to User's Bookings collection in Firestore with error callback
+        try {
+          const bookingsCol = collection(db, 'users', firebaseUser.uid, 'bookings');
+          unsubscribeBookings = onSnapshot(
+            bookingsCol,
+            (snapshot) => {
+              if (!snapshot.empty) {
+                const loadedBookings: Booking[] = [];
+                snapshot.forEach((docSnap) => {
+                  loadedBookings.push(docSnap.data() as Booking);
+                });
+                // Sort by booking date descending
+                loadedBookings.sort((a, b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime());
+                setBookings(loadedBookings);
+              }
+            },
+            (error) => {
+              console.warn('[Firestore] Bookings sync notice:', error?.message);
+            }
+          );
+        } catch (err) {
+          console.warn('[Firestore] Listener attach notice:', err);
+        }
+      } else {
+        setUserState((prev) => ({
+          ...prev,
+          firebaseUid: null,
+          firebaseEmail: null
+        }));
+      }
+    });
+
+    return () => {
+      if (unsubscribeBookings) {
+        unsubscribeBookings();
+      }
+      unsubscribeAuth();
+    };
+  }, []);
+
   const [activeTab, setActiveTab] = useState<TabType>('hotels');
   const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null);
   const [bookingTarget, setBookingTarget] = useState<{ hotel: Hotel; room: RoomOption } | null>(null);
@@ -151,21 +249,26 @@ export default function App() {
 
   // Handle Telegram Premium Toggle
   const handleTogglePremium = () => {
-    setUserState((prev) => ({
-      ...prev,
-      isTelegramPremium: !prev.isTelegramPremium
-    }));
+    setUserState((prev) => {
+      const next = { ...prev, isTelegramPremium: !prev.isTelegramPremium };
+      if (prev.firebaseUid) {
+        saveUserStateToFirestore(prev.firebaseUid, next);
+      }
+      return next;
+    });
   };
 
   // Connect TON Wallet Modal / Handler
   const handleConnectWallet = () => {
     if (userState.connectedWallet) {
       if (confirm('Disconnect current TON Space wallet?')) {
-        setUserState((prev) => ({
-          ...prev,
-          connectedWallet: null,
-          walletType: null
-        }));
+        setUserState((prev) => {
+          const next = { ...prev, connectedWallet: null, walletType: null };
+          if (prev.firebaseUid) {
+            saveUserStateToFirestore(prev.firebaseUid, next);
+          }
+          return next;
+        });
       }
     } else {
       const mockWallets = [
@@ -174,11 +277,17 @@ export default function App() {
         'EQD91a27_TelegramWallet_k192'
       ];
       const randomWallet = mockWallets[Math.floor(Math.random() * mockWallets.length)];
-      setUserState((prev) => ({
-        ...prev,
-        connectedWallet: randomWallet,
-        walletType: 'TON Space'
-      }));
+      setUserState((prev) => {
+        const next = {
+          ...prev,
+          connectedWallet: randomWallet,
+          walletType: 'TON Space' as const
+        };
+        if (prev.firebaseUid) {
+          saveUserStateToFirestore(prev.firebaseUid, next);
+        }
+        return next;
+      });
     }
   };
 
@@ -199,26 +308,45 @@ export default function App() {
   // On Booking Completion
   const handleBookingComplete = (newBooking: Booking) => {
     setBookings((prev) => [newBooking, ...prev]);
-    setUserState((prev) => ({
-      ...prev,
-      tonBalance: prev.tonBalance + newBooking.cashbackTon
-    }));
+    setUserState((prev) => {
+      const next = {
+        ...prev,
+        tonBalance: prev.tonBalance + newBooking.cashbackTon
+      };
+      if (prev.firebaseUid) {
+        saveBookingToFirestore(prev.firebaseUid, newBooking);
+        saveUserStateToFirestore(prev.firebaseUid, next);
+      }
+      return next;
+    });
   };
 
   // On Claim Cashback
   const handleClaimCashback = (amount: number) => {
-    setUserState((prev) => ({
-      ...prev,
-      tonBalance: Math.max(0, prev.tonBalance - amount)
-    }));
+    setUserState((prev) => {
+      const next = {
+        ...prev,
+        tonBalance: Math.max(0, prev.tonBalance - amount)
+      };
+      if (prev.firebaseUid) {
+        saveUserStateToFirestore(prev.firebaseUid, next);
+      }
+      return next;
+    });
   };
 
   // On Daily Reward Claimed
   const handleDailyRewardClaimed = (amountTon: number) => {
-    setUserState((prev) => ({
-      ...prev,
-      tonBalance: Number((prev.tonBalance + amountTon).toFixed(3))
-    }));
+    setUserState((prev) => {
+      const next = {
+        ...prev,
+        tonBalance: Number((prev.tonBalance + amountTon).toFixed(3))
+      };
+      if (prev.firebaseUid) {
+        saveUserStateToFirestore(prev.firebaseUid, next);
+      }
+      return next;
+    });
     setDailyRewardsState(loadDailyRewardsState());
   };
 
@@ -377,6 +505,7 @@ export default function App() {
       onOpenConverter={() => setIsCurrencyModalOpen(true)}
       onOpenAdmin={() => setIsAdminModalOpen(true)}
       onOpenCryptoRank={() => setIsCryptoRankModalOpen(true)}
+      onOpenAuth={() => setIsAuthModalOpen(true)}
       onSelectTheme={handleSelectTheme}
       onTogglePremium={handleTogglePremium}
       onConnectWallet={handleConnectWallet}
@@ -730,6 +859,8 @@ export default function App() {
               onOpenConverter={() => setIsCurrencyModalOpen(true)}
               onOpenTonTroubleshooter={() => setIsTonTroubleshooterOpen(true)}
               onOpenTonApiInspector={() => setIsTonApiModalOpen(true)}
+              onOpenCryptoRankConnector={() => setIsCryptoRankModalOpen(true)}
+              onOpenAuth={() => setIsAuthModalOpen(true)}
               onSelectTheme={handleSelectTheme}
               onConnectWallet={handleConnectWallet}
               onTogglePremium={handleTogglePremium}
@@ -834,6 +965,19 @@ export default function App() {
           isOpen={isTonApiModalOpen}
           onClose={() => setIsTonApiModalOpen(false)}
           defaultAddress={userState.connectedWallet || 'EQBvW839_TonSpace_cX92vK4499_TravelReward_Vault'}
+        />
+
+        {/* Modal: CryptoRank API v3 & MCP Connector with Recharts Price Trend Chart */}
+        <CryptoRankConnectorModal
+          isOpen={isCryptoRankModalOpen}
+          onClose={() => setIsCryptoRankModalOpen(false)}
+          tonPriceUsd={userState.tonPriceUsd}
+        />
+
+        {/* Modal: Firebase Auth & Cloud Firestore Data Sync */}
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
         />
 
         {/* Telegram Mini App Bottom Navigation Tabs */}

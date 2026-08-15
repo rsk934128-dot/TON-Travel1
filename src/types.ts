@@ -104,6 +104,18 @@ export interface LanguageOption {
   description: string;
 }
 
+export interface TonPriceAlertConfig {
+  enabled: boolean;
+  thresholdPercent: number; // e.g. 3% volatility
+  alertOnHigh: boolean;
+  highTargetPrice: number;
+  alertOnLow: boolean;
+  lowTargetPrice: number;
+  soundEnabled: boolean;
+  browserNotifications: boolean;
+  updatedAt?: string;
+}
+
 export interface UserState {
   isTelegramPremium: boolean;
   connectedWallet: string | null;
@@ -112,6 +124,9 @@ export interface UserState {
   tonPriceUsd: number;
   googleDriveToken: string | null;
   driveUserEmail: string | null;
+  firebaseUid?: string | null;
+  firebaseEmail?: string | null;
+  priceAlertConfig?: TonPriceAlertConfig;
   userProfile: {
     name: string;
     username: string;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserState } from '../types';
-import { Sparkles, Shield, Wallet, Smartphone, Monitor, CheckCircle, ExternalLink, Zap, Award, ArrowRightLeft, Crown, TrendingUp } from 'lucide-react';
+import { Sparkles, Shield, Wallet, Smartphone, Monitor, CheckCircle, ExternalLink, Zap, Award, ArrowRightLeft, Crown, TrendingUp, UserCheck, Database } from 'lucide-react';
 import { LoyaltyTierStatus } from '../utils/loyalty';
 import { AccentTheme, THEMES } from '../utils/theme';
 import { ThemeSelector } from './ThemeSelector';
@@ -19,6 +19,7 @@ interface TelegramFrameProps {
   onOpenConverter?: () => void;
   onOpenAdmin?: () => void;
   onOpenCryptoRank?: () => void;
+  onOpenAuth?: () => void;
   onSelectTheme?: (theme: AccentTheme) => void;
   onTogglePremium: () => void;
   onConnectWallet: () => void;
@@ -35,6 +36,7 @@ export const TelegramFrame: React.FC<TelegramFrameProps> = ({
   onOpenConverter,
   onOpenAdmin,
   onOpenCryptoRank,
+  onOpenAuth,
   onSelectTheme,
   onTogglePremium,
   onConnectWallet,
@@ -159,6 +161,22 @@ export const TelegramFrame: React.FC<TelegramFrameProps> = ({
               {userState.isTelegramPremium ? t('header.premium_active') : t('header.standard_active')}
             </span>
           </button>
+
+          {/* Firebase Auth & Cloud Sync Button */}
+          {onOpenAuth && (
+            <button
+              onClick={onOpenAuth}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
+                userState.firebaseUid
+                  ? 'bg-emerald-950/90 text-emerald-300 border border-emerald-500/50 shadow-sm'
+                  : 'bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40'
+              }`}
+              title={userState.firebaseUid ? `Firestore Cloud Sync Active (${userState.firebaseEmail})` : 'Login / Register to sync user data in Firestore'}
+            >
+              {userState.firebaseUid ? <UserCheck className="w-3.5 h-3.5 text-emerald-400" /> : <Database className="w-3.5 h-3.5 text-blue-400" />}
+              <span>{userState.firebaseUid ? 'Cloud Synced' : 'লগইন / সিঙ্ক'}</span>
+            </button>
+          )}
 
           {/* TON Wallet Quick Connect */}
           <button

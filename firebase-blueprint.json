@@ -1,0 +1,95 @@
+{
+  "firestore": {
+    "root": {
+      "users": {
+        "$userId": {
+          "schema": {
+            "fields": {
+              "uid": { "type": "string" },
+              "email": { "type": "string" },
+              "displayName": { "type": "string" },
+              "photoURL": { "type": "string" },
+              "isTelegramPremium": { "type": "boolean" },
+              "connectedWallet": { "type": "string" },
+              "walletType": { "type": "string" },
+              "tonBalance": { "type": "number" },
+              "priceAlertConfig": {
+                "type": "object",
+                "properties": {
+                  "enabled": { "type": "boolean" },
+                  "thresholdPercent": { "type": "number" },
+                  "alertOnHigh": { "type": "boolean" },
+                  "highTargetPrice": { "type": "number" },
+                  "alertOnLow": { "type": "boolean" },
+                  "lowTargetPrice": { "type": "number" },
+                  "soundEnabled": { "type": "boolean" },
+                  "browserNotifications": { "type": "boolean" },
+                  "updatedAt": { "type": "string" }
+                }
+              },
+              "updatedAt": { "type": "string" },
+              "createdAt": { "type": "string" }
+            }
+          },
+          "rules": {
+            "read": "request.auth != null && request.auth.uid == $userId",
+            "write": "request.auth != null && request.auth.uid == $userId"
+          },
+          "subcollections": {
+            "bookings": {
+              "$bookingId": {
+                "schema": {
+                  "fields": {
+                    "id": { "type": "string" },
+                    "hotelId": { "type": "string" },
+                    "hotelName": { "type": "string" },
+                    "hotelLocation": { "type": "string" },
+                    "hotelImage": { "type": "string" },
+                    "roomName": { "type": "string" },
+                    "checkIn": { "type": "string" },
+                    "checkOut": { "type": "string" },
+                    "nights": { "type": "number" },
+                    "guests": { "type": "number" },
+                    "totalPriceUsd": { "type": "number" },
+                    "totalPriceTon": { "type": "number" },
+                    "paymentMethod": { "type": "string" },
+                    "cashbackPercentage": { "type": "number" },
+                    "cashbackTon": { "type": "number" },
+                    "cashbackUsd": { "type": "number" },
+                    "status": { "type": "string" },
+                    "bookingDate": { "type": "string" },
+                    "userWallet": { "type": "string" },
+                    "guestName": { "type": "string" },
+                    "guestEmail": { "type": "string" },
+                    "createdAt": { "type": "string" }
+                  }
+                },
+                "rules": {
+                  "read": "request.auth != null && request.auth.uid == $userId",
+                  "write": "request.auth != null && request.auth.uid == $userId"
+                }
+              }
+            },
+            "preferences": {
+              "$prefId": {
+                "schema": {
+                  "fields": {
+                    "travelStyles": { "type": "array" },
+                    "budgetTier": { "type": "string" },
+                    "tripPace": { "type": "string" },
+                    "favoritePerks": { "type": "array" },
+                    "updatedAt": { "type": "string" }
+                  }
+                },
+                "rules": {
+                  "read": "request.auth != null && request.auth.uid == $userId",
+                  "write": "request.auth != null && request.auth.uid == $userId"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
