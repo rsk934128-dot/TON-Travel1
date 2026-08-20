@@ -1,6 +1,6 @@
 {
   "name": "TON Travel",
-  "description": "Telegram travel mini app with TON cashback, Google Drive sync, Gmail integration, and native calendar sync (.ics / Google Calendar) for booking stays worldwide.",
+  "description": "Telegram travel mini app with TON cashback, real-time TON price alert manager with 30-day analytics, proactive suggested thresholds, Firestore notification history, and Google Drive & Calendar integration.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

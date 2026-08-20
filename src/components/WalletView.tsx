@@ -4,6 +4,7 @@ import { Wallet, Sparkles, CheckCircle, ArrowUpRight, Cloud, RefreshCw, ShieldCh
 import confetti from 'canvas-confetti';
 import { FrequentTravelerLoyaltySection } from './FrequentTravelerLoyaltySection';
 import { DailyRewardsCard } from './DailyRewardsCard';
+import { PriceAlertManager } from './PriceAlertManager';
 import { ThemeSelector } from './ThemeSelector';
 import { CurrencySelector } from './CurrencySelector';
 import { LanguageSelector } from './LanguageSelector';
@@ -250,6 +251,13 @@ export const WalletView: React.FC<WalletViewProps> = ({
       <FrequentTravelerLoyaltySection
         bookings={bookings}
         userState={userState}
+      />
+
+      {/* TON Market Volatility & Price Alert Manager (Firestore Synced) */}
+      <PriceAlertManager
+        userState={userState}
+        onOpenAuth={onOpenAuth}
+        onOpenCryptoRankConnector={onOpenCryptoRankConnector}
       />
 
       {/* Settings Menu: Language Switcher, Currency & Theme */}

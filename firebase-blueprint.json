@@ -86,6 +86,29 @@
                   "write": "request.auth != null && request.auth.uid == $userId"
                 }
               }
+            },
+            "priceAlertEvents": {
+              "$eventId": {
+                "schema": {
+                  "fields": {
+                    "id": { "type": "string" },
+                    "userId": { "type": "string" },
+                    "triggerType": { "type": "string" },
+                    "currentPrice": { "type": "number" },
+                    "thresholdPrice": { "type": "number" },
+                    "thresholdPercent": { "type": "number" },
+                    "changePercent": { "type": "number" },
+                    "recipientEmail": { "type": "string" },
+                    "subject": { "type": "string" },
+                    "timestamp": { "type": "string" },
+                    "createdAt": { "type": "string" }
+                  }
+                },
+                "rules": {
+                  "read": "request.auth != null && request.auth.uid == $userId",
+                  "write": "request.auth != null && request.auth.uid == $userId"
+                }
+              }
             }
           }
         }

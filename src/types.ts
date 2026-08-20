@@ -28,6 +28,47 @@ export interface Hotel {
   tag?: string;
   category?: 'Luxury' | 'Budget' | 'Boutique' | 'Resort' | 'Eco-Villa' | string;
   categoryTags?: string[];
+  source?: 'booking_com' | 'curated' | 'live_feed';
+  bookingComId?: string;
+  verifiedPartner?: boolean;
+  liveRateVerifiedAt?: string;
+  address?: string;
+  checkInTime?: string;
+  checkOutTime?: string;
+}
+
+export interface BookingLocationResult {
+  dest_id: string;
+  dest_type: string;
+  label: string;
+  name: string;
+  city_name: string;
+  country: string;
+  image_url?: string;
+  hotels_count?: number;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface BookingApiStatus {
+  status: 'online' | 'degraded' | 'cached';
+  provider: 'Booking.com Official Demand API v3.1' | 'Booking.com Official Demand API' | 'RapidAPI Enterprise Proxy' | 'TON Travel Resilience Gateway' | string;
+  isLiveApiKeyConfigured: boolean;
+  isDemandApiConfigured?: boolean;
+  affiliateId?: string;
+  totalHotelsIndexed: number;
+  activeGateway: string;
+  latencyMs: number;
+  lastSyncTimestamp: number;
+  supportedDestinationsCount: number;
+  features: {
+    demandApiV31?: boolean;
+    liveRates: boolean;
+    realTimePhotos: boolean;
+    instantCashbackCalc: boolean;
+    autoFailoverResilience: boolean;
+    permanentZeroDowntime: boolean;
+  };
 }
 
 export type PaymentMethod = 'TON' | 'USDT_TON' | 'CARD';
@@ -113,7 +154,24 @@ export interface TonPriceAlertConfig {
   lowTargetPrice: number;
   soundEnabled: boolean;
   browserNotifications: boolean;
+  emailNotificationsEnabled?: boolean;
+  emailRecipient?: string;
+  lastEmailSentAt?: string;
   updatedAt?: string;
+}
+
+export interface PriceAlertEvent {
+  id: string;
+  userId?: string;
+  triggerType: 'HIGH_TARGET' | 'LOW_DIP' | 'VOLATILITY_THRESHOLD' | 'TEST';
+  currentPrice: number; // TON/USD rate at the time of the alert
+  thresholdPrice?: number;
+  thresholdPercent?: number;
+  changePercent?: number;
+  recipientEmail?: string;
+  subject?: string;
+  timestamp: string; // ISO string
+  createdAt?: string;
 }
 
 export interface UserState {

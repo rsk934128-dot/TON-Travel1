@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserState } from '../types';
-import { Sparkles, Shield, Wallet, Smartphone, Monitor, CheckCircle, ExternalLink, Zap, Award, ArrowRightLeft, Crown, TrendingUp, UserCheck, Database } from 'lucide-react';
+import { Sparkles, Shield, Wallet, Smartphone, Monitor, CheckCircle, ExternalLink, Zap, Award, ArrowRightLeft, Crown, TrendingUp, UserCheck, Database, Globe2 } from 'lucide-react';
 import { LoyaltyTierStatus } from '../utils/loyalty';
 import { AccentTheme, THEMES } from '../utils/theme';
 import { ThemeSelector } from './ThemeSelector';
@@ -19,6 +19,7 @@ interface TelegramFrameProps {
   onOpenConverter?: () => void;
   onOpenAdmin?: () => void;
   onOpenCryptoRank?: () => void;
+  onOpenBookingApi?: () => void;
   onOpenAuth?: () => void;
   onSelectTheme?: (theme: AccentTheme) => void;
   onTogglePremium: () => void;
@@ -36,6 +37,7 @@ export const TelegramFrame: React.FC<TelegramFrameProps> = ({
   onOpenConverter,
   onOpenAdmin,
   onOpenCryptoRank,
+  onOpenBookingApi,
   onOpenAuth,
   onSelectTheme,
   onTogglePremium,
@@ -109,6 +111,18 @@ export const TelegramFrame: React.FC<TelegramFrameProps> = ({
             >
               <TrendingUp className="w-3.5 h-3.5 text-blue-400" />
               <span>CryptoRank v3</span>
+            </button>
+          )}
+
+          {/* Quick Booking.com API Integration Diagnostics Trigger */}
+          {onOpenBookingApi && (
+            <button
+              onClick={onOpenBookingApi}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full font-bold text-xs bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-all active:scale-95 shadow-sm"
+              title="Open Booking.com API Integration & Diagnostics"
+            >
+              <Globe2 className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Booking.com API</span>
             </button>
           )}
 

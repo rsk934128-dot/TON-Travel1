@@ -14,14 +14,18 @@ import {
   doc,
   setDoc,
   getDoc,
+  getDocs,
+  addDoc,
   collection,
   onSnapshot,
   query,
   orderBy,
+  limit,
   deleteDoc
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { Booking, UserState, UserTravelPreferences, TonPriceAlertConfig } from '../types';
+import { Booking, UserState, UserTravelPreferences, TonPriceAlertConfig, PriceAlertEvent } from '../types';
+import { addToast } from './toastService';
 
 // Initialize Firebase App
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
@@ -226,8 +230,22 @@ export async function savePriceAlertConfigToFirestore(userId: string, config: To
       },
       updatedAt: new Date().toISOString()
     }, { merge: true });
+
+    addToast({
+      title: 'Price Alert Synced to Cloud',
+      message: `Threshold set to ±${config.thresholdPercent}% volatility${
+        config.alertOnHigh ? ` | High: $${config.highTargetPrice.toFixed(2)}` : ''
+      }${config.alertOnLow ? ` | Low: $${config.lowTargetPrice.toFixed(2)}` : ''}`,
+      type: 'success',
+      subMessage: `Saved to Firestore document users/${userId.slice(0, 8)}...`
+    });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+    addToast({
+      title: 'Sync Failed',
+      message: 'Could not save price alert settings to Firestore',
+      type: 'error'
+    });
   }
 }
 
@@ -274,4 +292,103 @@ export function subscribeToPriceAlertConfig(
     }
   );
   return unsubscribe;
+}
+
+/**
+ * Record a Triggered Price Alert Event to Firestore
+ */
+export async function recordPriceAlertEventToFirestore(
+  userId: string,
+  event: Omit<PriceAlertEvent, 'id'>
+): Promise<PriceAlertEvent | null> {
+  const path = `users/${userId}/priceAlertEvents`;
+  try {
+    const eventsRef = collection(db, 'users', userId, 'priceAlertEvents');
+    const docData = {
+      ...event,
+      userId,
+      createdAt: new Date().toISOString()
+    };
+    const docRef = await addDoc(eventsRef, docData);
+    return {
+      id: docRef.id,
+      ...docData
+    };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, path);
+    return null;
+  }
+}
+
+/**
+ * Subscribe to the last N triggered price alert events in Firestore
+ */
+export function subscribeToPriceAlertEvents(
+  userId: string,
+  onUpdate: (events: PriceAlertEvent[]) => void,
+  limitCount = 10
+): () => void {
+  const path = `users/${userId}/priceAlertEvents`;
+  try {
+    const eventsRef = collection(db, 'users', userId, 'priceAlertEvents');
+    const q = query(eventsRef, orderBy('timestamp', 'desc'), limit(limitCount));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const events: PriceAlertEvent[] = snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...(docSnap.data() as Omit<PriceAlertEvent, 'id'>)
+        }));
+        onUpdate(events);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, path);
+      }
+    );
+    return unsubscribe;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, path);
+    return () => {};
+  }
+}
+
+/**
+ * Load the last N triggered price alert events from Firestore (one-time fetch)
+ */
+export async function loadPriceAlertEventsFromFirestore(
+  userId: string,
+  limitCount = 10
+): Promise<PriceAlertEvent[]> {
+  const path = `users/${userId}/priceAlertEvents`;
+  try {
+    const eventsRef = collection(db, 'users', userId, 'priceAlertEvents');
+    const q = query(eventsRef, orderBy('timestamp', 'desc'), limit(limitCount));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...(docSnap.data() as Omit<PriceAlertEvent, 'id'>)
+    }));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, path);
+    return [];
+  }
+}
+
+/**
+ * Clear a specific price alert event in Firestore
+ */
+export async function deletePriceAlertEventFromFirestore(
+  userId: string,
+  eventId: string
+): Promise<boolean> {
+  const path = `users/${userId}/priceAlertEvents/${eventId}`;
+  try {
+    const eventRef = doc(db, 'users', userId, 'priceAlertEvents', eventId);
+    await deleteDoc(eventRef);
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+    return false;
+  }
 }

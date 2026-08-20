@@ -54,6 +54,7 @@ import {
 import { CryptoRankTonChart } from './CryptoRankTonChart';
 import { TonPriceAlertConfig } from '../types';
 import { auth, savePriceAlertConfigToFirestore, subscribeToPriceAlertConfig } from '../services/firebaseService';
+import { addToast } from '../services/toastService';
 import { onAuthStateChanged, User } from 'firebase/auth';
 
 const DEFAULT_ALERT_CONFIG: TonPriceAlertConfig = {
@@ -138,10 +139,40 @@ export const CryptoRankConnectorModal: React.FC<CryptoRankConnectorModalProps> =
   });
 
   const [activeAlertToast, setActiveAlertToast] = useState<{
+    id?: string;
     title: string;
     message: string;
-    type: 'up' | 'down' | 'info';
+    type: 'up' | 'down' | 'info' | 'success';
+    subMessage?: string;
   } | null>(null);
+
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showFeedbackToast = (
+    title: string,
+    message: string,
+    type: 'up' | 'down' | 'info' | 'success' = 'success',
+    subMessage?: string
+  ) => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    const defaultSub = currentUser
+      ? '✓ Persisted to Firestore User Profile'
+      : '✓ Saved to Browser Session (Sign in to sync across devices)';
+
+    setActiveAlertToast({
+      id: `toast-${Date.now()}`,
+      title,
+      message,
+      type,
+      subMessage: subMessage || defaultSub
+    });
+
+    toastTimerRef.current = setTimeout(() => {
+      setActiveAlertToast(null);
+    }, 4000);
+  };
 
   // Firebase User & Cloud Sync State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -173,7 +204,15 @@ export const CryptoRankConnectorModal: React.FC<CryptoRankConnectorModalProps> =
     return () => unsubDoc();
   }, [currentUser?.uid]);
 
-  const updateAlertConfig = async (updater: (prev: TonPriceAlertConfig) => TonPriceAlertConfig) => {
+  const updateAlertConfig = async (
+    updater: (prev: TonPriceAlertConfig) => TonPriceAlertConfig,
+    feedback?: {
+      title: string;
+      message: string;
+      type?: 'up' | 'down' | 'info' | 'success';
+      subMessage?: string;
+    }
+  ) => {
     let newConfig: TonPriceAlertConfig = DEFAULT_ALERT_CONFIG;
     setAlertConfig((prev) => {
       const next = updater(prev);
@@ -185,6 +224,18 @@ export const CryptoRankConnectorModal: React.FC<CryptoRankConnectorModalProps> =
       }
       return next;
     });
+
+    if (feedback) {
+      showFeedbackToast(feedback.title, feedback.message, feedback.type || 'success', feedback.subMessage);
+      if (!currentUser?.uid) {
+        addToast({
+          title: feedback.title,
+          message: feedback.message,
+          type: feedback.type || 'success',
+          subMessage: 'Saved locally in browser session'
+        });
+      }
+    }
 
     // Persist to user's Firestore document if authenticated
     if (currentUser?.uid) {
@@ -433,6 +484,76 @@ export const CryptoRankConnectorModal: React.FC<CryptoRankConnectorModalProps> =
 
   return (
     <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      {/* Interactive Toast Notification Feedback System */}
+      {activeAlertToast && (
+        <div className="fixed top-5 right-5 z-[100] max-w-sm sm:max-w-md w-[calc(100vw-2.5rem)] pointer-events-auto transition-all animate-in fade-in slide-in-from-top-3 duration-300">
+          <div
+            className={`p-4 rounded-2xl border shadow-2xl backdrop-blur-xl flex items-start gap-3.5 ${
+              activeAlertToast.type === 'up'
+                ? 'bg-slate-900/95 border-emerald-500/50 shadow-emerald-950/50 text-slate-100'
+                : activeAlertToast.type === 'down'
+                ? 'bg-slate-900/95 border-rose-500/50 shadow-rose-950/50 text-slate-100'
+                : activeAlertToast.type === 'info'
+                ? 'bg-slate-900/95 border-blue-500/50 shadow-blue-950/50 text-slate-100'
+                : 'bg-slate-900/95 border-amber-500/50 shadow-amber-950/50 text-slate-100'
+            }`}
+          >
+            {/* Status Icon */}
+            <div
+              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+                activeAlertToast.type === 'up'
+                  ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                  : activeAlertToast.type === 'down'
+                  ? 'bg-rose-500/20 border-rose-500/40 text-rose-400'
+                  : activeAlertToast.type === 'info'
+                  ? 'bg-blue-500/20 border-blue-500/40 text-blue-400'
+                  : 'bg-amber-500/20 border-amber-500/40 text-amber-400'
+              }`}
+            >
+              {activeAlertToast.type === 'up' ? (
+                <TrendingUp className="w-5 h-5" />
+              ) : activeAlertToast.type === 'down' ? (
+                <TrendingDown className="w-5 h-5" />
+              ) : activeAlertToast.type === 'info' ? (
+                <Sliders className="w-5 h-5" />
+              ) : (
+                <CheckCircle2 className="w-5 h-5" />
+              )}
+            </div>
+
+            {/* Content Body */}
+            <div className="flex-1 min-w-0 pr-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h4 className="text-xs font-black tracking-wide text-white">
+                  {activeAlertToast.title}
+                </h4>
+                <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-cyan-300 font-mono">
+                  Saved
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
+                {activeAlertToast.message}
+              </p>
+              {activeAlertToast.subMessage && (
+                <p className="text-[10px] font-mono text-cyan-400/90 mt-1 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-cyan-400" />
+                  <span>{activeAlertToast.subMessage}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Close Button */}
+            <button
+              onClick={() => setActiveAlertToast(null)}
+              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors shrink-0"
+              title="Dismiss toast"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-slate-900 border border-blue-500/40 rounded-3xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-fade-in text-slate-100">
         
         {/* Header */}
@@ -999,8 +1120,18 @@ export const CryptoRankConnectorModal: React.FC<CryptoRankConnectorModalProps> =
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => {
-                        updateAlertConfig(prev => ({ ...prev, enabled: !prev.enabled }));
-                        if (!alertConfig.enabled) playAlertChime('test');
+                        const willEnable = !alertConfig.enabled;
+                        updateAlertConfig(
+                          prev => ({ ...prev, enabled: willEnable }),
+                          {
+                            title: willEnable ? 'Price Alerts Activated' : 'Price Alerts Paused',
+                            message: willEnable
+                              ? `Live threshold monitoring active at ±${alertConfig.thresholdPercent}% volatility sensitivity`
+                              : 'Real-time TON price movement alerts temporarily paused',
+                            type: willEnable ? 'success' : 'info'
+                          }
+                        );
+                        if (willEnable) playAlertChime('test');
                       }}
                       className={`px-5 py-2.5 rounded-2xl font-bold text-xs flex items-center gap-2 transition-all shadow-md active:scale-95 ${
                         alertConfig.enabled
@@ -1061,10 +1192,20 @@ export const CryptoRankConnectorModal: React.FC<CryptoRankConnectorModalProps> =
                   ].map((preset) => (
                     <button
                       key={preset.pct}
-                      onClick={() => updateAlertConfig(prev => ({ ...prev, thresholdPercent: preset.pct }))}
+                      onClick={() => {
+                        updateAlertConfig(
+                          prev => ({ ...prev, thresholdPercent: preset.pct }),
+                          {
+                            title: `Threshold Set to ${preset.label}`,
+                            message: `Price alerts will trigger whenever TON moves by ±${preset.pct}% (${preset.desc})`,
+                            type: 'success'
+                          }
+                        );
+                        playAlertChime('up');
+                      }}
                       className={`p-2.5 rounded-2xl text-left border transition-all ${
                         alertConfig.thresholdPercent === preset.pct
-                          ? 'bg-amber-500/20 border-amber-500/50 text-white shadow-md'
+                          ? 'bg-amber-500/20 border-amber-500/50 text-white shadow-md ring-1 ring-amber-400/40'
                           : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
                       }`}
                     >
@@ -1087,7 +1228,17 @@ export const CryptoRankConnectorModal: React.FC<CryptoRankConnectorModalProps> =
                     max="15"
                     step="0.5"
                     value={alertConfig.thresholdPercent}
-                    onChange={(e) => updateAlertConfig(prev => ({ ...prev, thresholdPercent: Number(e.target.value) }))}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      updateAlertConfig(
+                        prev => ({ ...prev, thresholdPercent: val }),
+                        {
+                          title: `Threshold Sensitivity: ±${val}%`,
+                          message: `Alert sensitivity updated to ±${val}% movement threshold`,
+                          type: 'info'
+                        }
+                      );
+                    }}
                     className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
                   />
                 </div>
@@ -1106,7 +1257,17 @@ export const CryptoRankConnectorModal: React.FC<CryptoRankConnectorModalProps> =
                     <input
                       type="checkbox"
                       checked={alertConfig.alertOnHigh}
-                      onChange={(e) => updateAlertConfig(prev => ({ ...prev, alertOnHigh: e.target.checked }))}
+                      onChange={(e) => {
+                        const isChecked = e.target.checked;
+                        updateAlertConfig(
+                          prev => ({ ...prev, alertOnHigh: isChecked }),
+                          {
+                            title: isChecked ? 'High Price Target Enabled' : 'High Price Target Disabled',
+                            message: `Target rate threshold is set at $${alertConfig.highTargetPrice.toFixed(2)} USD`,
+                            type: isChecked ? 'up' : 'info'
+                          }
+                        );
+                      }}
                       className="w-4 h-4 accent-emerald-400 rounded cursor-pointer"
                     />
                   </div>
@@ -1121,7 +1282,17 @@ export const CryptoRankConnectorModal: React.FC<CryptoRankConnectorModalProps> =
                         step="0.05"
                         min="1"
                         value={alertConfig.highTargetPrice}
-                        onChange={(e) => updateAlertConfig(prev => ({ ...prev, highTargetPrice: Number(e.target.value) }))}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          updateAlertConfig(
+                            prev => ({ ...prev, highTargetPrice: val }),
+                            {
+                              title: `High Target Price Set: $${val.toFixed(2)}`,
+                              message: `You will be alerted when TON reaches or exceeds $${val.toFixed(2)} USD`,
+                              type: 'up'
+                            }
+                          );
+                        }}
                         className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-7 pr-3 py-2 text-xs font-mono font-bold text-emerald-300 focus:outline-none focus:border-emerald-400"
                       />
                     </div>
@@ -1143,7 +1314,17 @@ export const CryptoRankConnectorModal: React.FC<CryptoRankConnectorModalProps> =
                     <input
                       type="checkbox"
                       checked={alertConfig.alertOnLow}
-                      onChange={(e) => updateAlertConfig(prev => ({ ...prev, alertOnLow: e.target.checked }))}
+                      onChange={(e) => {
+                        const isChecked = e.target.checked;
+                        updateAlertConfig(
+                          prev => ({ ...prev, alertOnLow: isChecked }),
+                          {
+                            title: isChecked ? 'Dip Buy Alert Enabled' : 'Dip Buy Alert Disabled',
+                            message: `Dip buy price threshold is set at $${alertConfig.lowTargetPrice.toFixed(2)} USD`,
+                            type: isChecked ? 'down' : 'info'
+                          }
+                        );
+                      }}
                       className="w-4 h-4 accent-rose-400 rounded cursor-pointer"
                     />
                   </div>
@@ -1158,7 +1339,17 @@ export const CryptoRankConnectorModal: React.FC<CryptoRankConnectorModalProps> =
                         step="0.05"
                         min="0.5"
                         value={alertConfig.lowTargetPrice}
-                        onChange={(e) => updateAlertConfig(prev => ({ ...prev, lowTargetPrice: Number(e.target.value) }))}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          updateAlertConfig(
+                            prev => ({ ...prev, lowTargetPrice: val }),
+                            {
+                              title: `Low Target Price Set: $${val.toFixed(2)}`,
+                              message: `You will be alerted when TON dips to or below $${val.toFixed(2)} USD`,
+                              type: 'down'
+                            }
+                          );
+                        }}
                         className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-7 pr-3 py-2 text-xs font-mono font-bold text-rose-300 focus:outline-none focus:border-rose-400"
                       />
                     </div>
@@ -1209,8 +1400,18 @@ export const CryptoRankConnectorModal: React.FC<CryptoRankConnectorModalProps> =
                         type="checkbox"
                         checked={alertConfig.soundEnabled}
                         onChange={(e) => {
-                          updateAlertConfig(prev => ({ ...prev, soundEnabled: e.target.checked }));
-                          if (e.target.checked) playAlertChime('up');
+                          const isEnabled = e.target.checked;
+                          updateAlertConfig(
+                            prev => ({ ...prev, soundEnabled: isEnabled }),
+                            {
+                              title: isEnabled ? 'Audio Chime Enabled' : 'Audio Chime Muted',
+                              message: isEnabled
+                                ? 'Web Audio synthesizer tone will sound when price thresholds trigger'
+                                : 'In-app audio alert sound muted',
+                              type: 'info'
+                            }
+                          );
+                          if (isEnabled) playAlertChime('up');
                         }}
                         className="w-4 h-4 accent-amber-400 rounded cursor-pointer"
                       />
@@ -1255,7 +1456,14 @@ export const CryptoRankConnectorModal: React.FC<CryptoRankConnectorModalProps> =
 
                   <button
                     onClick={() => {
-                      updateAlertConfig(() => DEFAULT_ALERT_CONFIG);
+                      updateAlertConfig(
+                        () => DEFAULT_ALERT_CONFIG,
+                        {
+                          title: 'Alert Settings Reset to Default',
+                          message: 'Restored default ±3.0% sensitivity, $6.50 target and $4.50 dip thresholds',
+                          type: 'success'
+                        }
+                      );
                       playAlertChime('test');
                     }}
                     className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 text-xs font-medium transition-all"

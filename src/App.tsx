@@ -17,7 +17,10 @@ import { AdminPanelModal } from './components/AdminPanelModal';
 import { TonSpaceTroubleshooterModal } from './components/TonSpaceTroubleshooterModal';
 import { TonApiInspectorModal } from './components/TonApiInspectorModal';
 import { CryptoRankConnectorModal } from './components/CryptoRankConnectorModal';
+import { BookingApiModal } from './components/BookingApiModal';
 import { AuthModal } from './components/AuthModal';
+import { GlobalToastContainer } from './components/GlobalToastContainer';
+import { subscribeToToasts, removeToast, ToastNotification } from './services/toastService';
 import {
   auth,
   db,
@@ -33,7 +36,7 @@ import { loadDailyRewardsState, getCooldownStatus } from './utils/dailyRewards';
 import { AccentTheme, THEMES, loadSavedTheme, saveTheme } from './utils/theme';
 import { loadSavedCurrency, saveCurrency, fetchFxRates, DEFAULT_FX_RATES } from './utils/currency';
 import { useLanguage } from './utils/i18n';
-import { Search, Sparkles, SlidersHorizontal, MapPin, Building2, Shield, RefreshCw, Gift, Flame, Clock, ChevronRight, ArrowRightLeft, RotateCcw, Tag } from 'lucide-react';
+import { Search, Sparkles, SlidersHorizontal, MapPin, Building2, Shield, RefreshCw, Gift, Flame, Clock, ChevronRight, ArrowRightLeft, RotateCcw, Tag, Globe2 } from 'lucide-react';
 import appLogo from './assets/images/ton_travel_logo_1786647813598.jpg';
 
 export default function App() {
@@ -52,6 +55,7 @@ export default function App() {
   const [selectedCurrency, setSelectedCurrency] = useState<string>(() => loadSavedCurrency());
   const [fxRates, setFxRates] = useState<Record<string, number>>(DEFAULT_FX_RATES);
   const [isCurrencyModalOpen, setIsCurrencyModalOpen] = useState(false);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
   const handleSelectCurrency = (currencyCode: string) => {
     setSelectedCurrency(currencyCode);
@@ -110,6 +114,16 @@ export default function App() {
 
   // Firebase Auth & Firestore Cloud Sync Modal
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // Global Toast Notification Array State
+  const [toasts, setToasts] = useState<ToastNotification[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToToasts((updatedToasts) => {
+      setToasts(updatedToasts);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Firebase Auth State Listener & Firestore Real-Time Sync
   useEffect(() => {
@@ -505,6 +519,7 @@ export default function App() {
       onOpenConverter={() => setIsCurrencyModalOpen(true)}
       onOpenAdmin={() => setIsAdminModalOpen(true)}
       onOpenCryptoRank={() => setIsCryptoRankModalOpen(true)}
+      onOpenBookingApi={() => setIsBookingModalOpen(true)}
       onOpenAuth={() => setIsAuthModalOpen(true)}
       onSelectTheme={handleSelectTheme}
       onTogglePremium={handleTogglePremium}
@@ -631,6 +646,41 @@ export default function App() {
                         <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-white transition-colors" />
                       </div>
                     )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Booking.com Real-time Demand API & Global Explorer Banner */}
+              <div className="px-4 max-w-6xl mx-auto">
+                <div
+                  onClick={() => setIsBookingModalOpen(true)}
+                  className="cursor-pointer p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-blue-950/60 via-slate-900 to-cyan-950/50 border border-cyan-500/30 hover:border-cyan-400/60 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-300 shadow-md shrink-0 group-hover:scale-105 transition-transform">
+                      <Globe2 className="w-5 h-5 text-cyan-400" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-extrabold text-white text-xs sm:text-sm tracking-tight">
+                          Booking.com Demand API Integration
+                        </span>
+                        <span className="px-2 py-0.2 rounded-full text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          Lifetime Active
+                        </span>
+                      </div>
+                      <p className="text-slate-400 text-[11px] mt-0.5">
+                        Access 3.28M+ global hotels with real-time verified rates & instant 5%–8% TON Cashback
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <span className="text-[11px] font-extrabold text-cyan-300 group-hover:text-white bg-cyan-950/80 group-hover:bg-cyan-600 px-3 py-1.5 rounded-xl border border-cyan-500/30 group-hover:border-cyan-400 transition-all flex items-center gap-1">
+                      <span>API Explorer</span>
+                      <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    </span>
                   </div>
                 </div>
               </div>
@@ -974,6 +1024,18 @@ export default function App() {
           tonPriceUsd={userState.tonPriceUsd}
         />
 
+        {/* Modal: Booking.com API Integration & Lifetime Gateway Diagnostics */}
+        <BookingApiModal
+          isOpen={isBookingModalOpen}
+          onClose={() => setIsBookingModalOpen(false)}
+          currentTheme={currentTheme}
+          tonPriceUsd={userState.tonPriceUsd}
+          onSelectCity={(cityName) => {
+            setSelectedCityFilter(cityName);
+            setSearchQuery('');
+          }}
+        />
+
         {/* Modal: Firebase Auth & Cloud Firestore Data Sync */}
         <AuthModal
           isOpen={isAuthModalOpen}
@@ -988,6 +1050,12 @@ export default function App() {
           cashbackBalanceTon={userState.tonBalance}
           isPremium={userState.isTelegramPremium}
           currentTheme={currentTheme}
+        />
+
+        {/* Global Toast Notification System */}
+        <GlobalToastContainer
+          toasts={toasts}
+          onDismiss={removeToast}
         />
 
       </div>
